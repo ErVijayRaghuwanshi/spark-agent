@@ -25,6 +25,12 @@ dependencies = [
 [project.scripts]
 spark-agent = "spark_agent.main:run"
 
+[project.urls]
+Homepage = "https://github.com/ErVijayRaghuwanshi/spark-agent"
+Repository = "https://github.com/ErVijayRaghuwanshi/spark-agent"
+"Bug Tracker" = "https://github.com/ErVijayRaghuwanshi/spark-agent/issues"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+

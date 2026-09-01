@@ -43,7 +43,14 @@ spark-agent/
 
 ## 🚀 Quick Start
 
-### 1. Configure Environment
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ErVijayRaghuwanshi/spark-agent.git
+cd spark-agent
+```
+
+### 2. Configure Environment
 
 Ensure your `.env` contains your Gemini API key and points to your running SparkLens MCP server:
 
@@ -53,7 +60,7 @@ SPARK_MCP_URL=http://localhost:8030/sse
 AGENT_MODEL=google_genai:gemini-3.1-flash-lite
 ```
 
-### 2. Start SparkLens MCP Server
+### 3. Start SparkLens MCP Server
 
 In your `spark-lens` repository, ensure the FastMCP server is active:
 
@@ -62,7 +69,7 @@ cd /Users/ervijay/Documents/Programs/Repo/spark-lens
 uv run --env-file .env python -m sparklens.server
 ```
 
-### 3. Run the Spark Agent
+### 4. Run the Spark Agent
 
 From the `spark-agent` directory:
 
@@ -76,7 +83,7 @@ Or using the CLI entrypoint:
 uv run spark-agent
 ```
 
-### 4. Open the Web Dashboard
+### 5. Open the Web Dashboard
 
 Open your browser and navigate to:
 👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
