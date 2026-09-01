@@ -110,60 +110,67 @@ def json_schema_to_pydantic_model(model_name: str, schema: Dict[str, Any]) -> Ty
             
     return create_model(model_name, **fields)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Dynamically compiles the LangChain agent graph on startup using a temporary MCP connection."""
+async def ensure_agent_compiled():
+    """Ensure LangChain agent is compiled with tools from the MCP server."""
     global agent
+    if agent is not None:
+        return agent
+        
     mcp_url = os.getenv("SPARK_MCP_URL", "http://localhost:8030/sse")
     logger.info(f"Connecting to SparkLens MCP SSE server at {mcp_url} for compilation...")
     
-    try:
-        async with sse_client(mcp_url) as (read_stream, write_stream):
-            async with ClientSession(read_stream, write_stream) as session:
-                await session.initialize()
-                logger.info("Connected to MCP server. Fetching available tools for agent compilation...")
-                
-                tools_response = await session.list_tools()
-                langchain_tools = []
-                
-                def make_call_tool(tool_name):
-                    async def call_tool(**kwargs):
-                        # Filter out None values to let the MCP server apply defaults
-                        cleaned_args = {k: v for k, v in kwargs.items() if v is not None}
-                        # Get active request-scoped session from ContextVar
-                        session = mcp_session_var.get()
-                        logger.info(f"Forwarding call to MCP: {tool_name} with args {cleaned_args}")
-                        result = await session.call_tool(tool_name, arguments=cleaned_args)
-                        return result.content
-                    return call_tool
+    async with sse_client(mcp_url) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            logger.info("Connected to MCP server. Fetching available tools for agent compilation...")
+            
+            tools_response = await session.list_tools()
+            langchain_tools = []
+            
+            def make_call_tool(tool_name):
+                async def call_tool(**kwargs):
+                    # Filter out None values to let the MCP server apply defaults
+                    cleaned_args = {k: v for k, v in kwargs.items() if v is not None}
+                    # Get active request-scoped session from ContextVar
+                    session = mcp_session_var.get()
+                    logger.info(f"Forwarding call to MCP: {tool_name} with args {cleaned_args}")
+                    result = await session.call_tool(tool_name, arguments=cleaned_args)
+                    return result.content
+                return call_tool
 
-                for tool in tools_response.tools:
-                    # Construct unique input class name
-                    model_name = "".join(x.capitalize() for x in tool.name.split("_")) + "Input"
-                    args_schema = json_schema_to_pydantic_model(model_name, tool.inputSchema)
-                    
-                    lc_tool = StructuredTool.from_function(
-                        coroutine=make_call_tool(tool.name),
-                        name=tool.name,
-                        description=tool.description,
-                        args_schema=args_schema
-                    )
-                    langchain_tools.append(lc_tool)
-                    logger.info(f"Compiled LangChain tool wrapper: {tool.name}")
+            for tool in tools_response.tools:
+                # Construct unique input class name
+                model_name = "".join(x.capitalize() for x in tool.name.split("_")) + "Input"
+                args_schema = json_schema_to_pydantic_model(model_name, tool.inputSchema)
                 
-                DEFAULT_MODEL = os.getenv("AGENT_MODEL", "google_genai:gemini-3.1-flash-lite")
-                logger.info(f"Creating LangChain agent with model: {DEFAULT_MODEL}...")
-                
-                agent = create_deep_agent(
-                    model=DEFAULT_MODEL,
-                    tools=langchain_tools,
-                    checkpointer=checkpointer,
-                    system_prompt=SYSTEM_PROMPT
+                lc_tool = StructuredTool.from_function(
+                    coroutine=make_call_tool(tool.name),
+                    name=tool.name,
+                    description=tool.description,
+                    args_schema=args_schema
                 )
-                logger.info("LangChain Spark Agent successfully compiled and ready.")
+                langchain_tools.append(lc_tool)
+                logger.info(f"Compiled LangChain tool wrapper: {tool.name}")
+            
+            DEFAULT_MODEL = os.getenv("AGENT_MODEL", "google_genai:gemini-3.1-flash-lite")
+            logger.info(f"Creating LangChain agent with model: {DEFAULT_MODEL}...")
+            
+            agent = create_deep_agent(
+                model=DEFAULT_MODEL,
+                tools=langchain_tools,
+                checkpointer=checkpointer,
+                system_prompt=SYSTEM_PROMPT
+            )
+            logger.info("LangChain Spark Agent successfully compiled and ready.")
+            return agent
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Attempts to compile the LangChain agent graph on startup if MCP server is available."""
+    try:
+        await ensure_agent_compiled()
     except Exception as e:
-        logger.error(f"Failed to fetch tools and compile agent on startup: {e}", exc_info=True)
-        raise RuntimeError("Agent compilation failed on startup") from e
+        logger.warning(f"Could not connect to SparkLens MCP server at startup ({e}). Will attempt compilation on first request.")
         
     yield
     logger.info("Service shutting down.")
@@ -221,9 +228,14 @@ def extract_text_from_content(content: Any) -> str:
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     """Sends a message to the agent and gets a streaming response over SSE."""
-    global agent
-    if not agent:
-        raise HTTPException(status_code=503, detail="Agent is not yet initialized or SparkLens MCP server is offline.")
+    try:
+        await ensure_agent_compiled()
+    except Exception as e:
+        logger.error(f"Failed to connect to MCP server: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Cannot connect to SparkLens MCP server. Ensure it is running at {os.getenv('SPARK_MCP_URL', 'http://localhost:8030/sse')}."
+        )
         
     if not request.message or not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
