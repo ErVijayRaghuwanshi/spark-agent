@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SparkLens AI Agent Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Markdown Parser (marked.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        /* Custom style for rendered markdown tables */
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1rem;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .markdown-content th, .markdown-content td {
+            border: 1px solid #334155;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .markdown-content th {
+            background-color: #1e293b;
+            font-weight: 600;
+        }
+        .markdown-content tr:nth-child(even) {
+            background-color: #0f172a;
+        }
+        .markdown-content code {
+            background-color: #1e293b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #38bdf8;
+            font-size: 0.85em;
+        }
+        .markdown-content pre {
+            background-color: #0f172a;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border: 1px solid #334155;
+            margin-bottom: 1rem;
+        }
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #e2e8f0;
+        }
+        .markdown-content p {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+            list-style-type: unset;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-full font-sans antialiased">
+    <!-- Header -->
+    <header class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2.5 rounded-lg text-white font-bold text-lg flex items-center justify-center shadow-indigo-500/20 shadow-md">
+                ⚡
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white">SparkLens AI Agent</h1>
+                <p class="text-xs text-slate-400">Model Context Protocol (MCP) Spark Diagnostic Assistant</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                MCP Connected
+            </span>
+            <button onclick="newThread()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2">
+                🔄 Clear Session
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 flex overflow-hidden">
+        <!-- Sidebar: Spark shortcuts & logs -->
+        <aside class="w-80 bg-slate-950 border-r border-slate-800 flex flex-col p-4 gap-4 overflow-y-auto">
+            <div>
+                <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Diagnostic Shortcuts</h2>
+                <div class="flex flex-col gap-2">
+                    <button onclick="sendShortcut('List completed Spark applications')" class="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all text-xs flex flex-col gap-1">
+                        <span class="font-medium text-slate-200">📋 List Applications</span>
+                        <span class="text-slate-500 text-[10px]">Retrieve completed application records from Spark history.</span>
+                    </button>
+                    <button onclick="sendShortcut('Analyze execution health for app: <insert app id here>')" class="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all text-xs flex flex-col gap-1">
+                        <span class="font-medium text-slate-200">🩺 Analyze Application Health</span>
+                        <span class="text-slate-500 text-[10px]">Provide job durations, failures, and structural diagnostic summaries.</span>
+                    </button>
+                    <button onclick="sendShortcut('Scan stages for application: <insert app id here> and find which stages failed')" class="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all text-xs flex flex-col gap-1">
+                        <span class="font-medium text-slate-200">❌ Find Failed Stages</span>
+                        <span class="text-slate-500 text-[10px]">Locate stage failures and extract stack trace log reasons.</span>
+                    </button>
+                    <button onclick="sendShortcut('Get environment settings for app: <insert app id here>')" class="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all text-xs flex flex-col gap-1">
+                        <span class="font-medium text-slate-200">💻 Environment Properties</span>
+                        <span class="text-slate-500 text-[10px]">Retrieve JVM classpath, Spark config properties, and driver environment.</span>
+                    </button>
+                    <button onclick="sendShortcut('Get executors for app: <insert app id here>')" class="w-full text-left px-3 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all text-xs flex flex-col gap-1">
+                        <span class="font-medium text-slate-200">⚙️ Executors & Resource Metrics</span>
+                        <span class="text-slate-500 text-[10px]">Inspect driver + workers, cores, tasks, task-skew, and usage.</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-auto border-t border-slate-800 pt-4">
+                <div class="rounded-lg bg-indigo-950/30 border border-indigo-900/50 p-3 text-xs text-indigo-300">
+                    <p class="font-semibold mb-1">💡 Pro-Tip</p>
+                    Ensure your Spark History Server is running at the address specified by the <code class="text-indigo-200 bg-indigo-950">SPARK_HISTORY_URL</code> environment variable on your SparkLens MCP server.
+                </div>
+            </div>
+        </aside>
+
+        <!-- Chat Container -->
+        <section class="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+            <!-- Messages scroll area -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                <!-- Welcome Message -->
+                <div class="flex gap-4 max-w-3xl">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0 text-sm">
+                        🤖
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-sm text-slate-300 mb-1">SparkLens Agent</p>
+                        <div class="bg-slate-800/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-300 markdown-content">
+                            Hello! I am your Spark performance and diagnostic assistant. I can directly access your Spark History Server using SparkLens tools. Let me know what you'd like to look at, or click one of the quick actions on the sidebar!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loader Indicator -->
+            <div id="chat-loader" class="hidden px-6 py-3 flex gap-4 max-w-3xl items-center text-slate-400 text-xs">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0 text-sm animate-pulse">
+                    🤖
+                </div>
+                <div class="flex items-center gap-2 bg-slate-800/30 border border-slate-800/50 rounded-xl px-4 py-3">
+                    <span class="flex h-2 w-2 relative">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                    </span>
+                    <span>Querying Spark history metrics & analyzing execution graph...</span>
+                </div>
+            </div>
+
+            <!-- Input area -->
+            <div class="p-6 border-t border-slate-800 bg-slate-950">
+                <form id="chat-form" onsubmit="handleSubmit(event)" class="relative flex items-center gap-3">
+                    <input id="chat-input" type="text" placeholder="Ask about jobs, diagnostics, executor skew or ask for config optimization..." class="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm text-slate-100 rounded-xl pl-4 pr-12 py-3.5 focus:outline-none transition-all placeholder-slate-500" required>
+                    <button type="submit" class="absolute right-3.5 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg transition-colors font-bold shadow-md shadow-indigo-600/10">
+                        →
+                    </button>
+                </form>
+                <div class="mt-2 flex items-center justify-between text-[11px] text-slate-500 px-1">
+                    <span>Active session ID: <span id="session-id" class="font-mono text-slate-400">generating...</span></span>
+                    <span>Endpoint: <code class="bg-slate-900 px-1 py-0.5 rounded">/api/chat</code></span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- App Script -->
+    <script>
+        let currentThreadId = null;
+
+        async function newThread() {
+            try {
+                const response = await fetch('/api/new_thread');
+                const data = await response.json();
+                currentThreadId = data.thread_id;
+                document.getElementById('session-id').innerText = currentThreadId;
+                
+                // Clear UI history to base welcome
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = `
+                    <div class="flex gap-4 max-w-3xl">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0 text-sm">
+                            🤖
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-sm text-slate-300 mb-1">SparkLens Agent</p>
+                            <div class="bg-slate-800/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-300 markdown-content">
+                                Started a fresh session. Ready to parse execution logs and optimize your jobs.
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                console.error("Failed to generate thread id", err);
+                alert("Error starting a new session. Ensure the FastAPI backend is running.");
+            }
+        }
+
+        function appendMessage(role, content) {
+            const container = document.getElementById('chat-messages');
+            const wrapper = document.createElement('div');
+            wrapper.className = "flex gap-4 max-w-3xl " + (role === 'user' ? 'ml-auto flex-row-reverse' : '');
+            
+            const avatar = document.createElement('div');
+            avatar.className = "w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0 text-sm " +
+                (role === 'user' ? 'bg-indigo-500 shadow-md shadow-indigo-500/10' : 'bg-indigo-600 shadow-md shadow-indigo-600/10');
+            avatar.innerText = role === 'user' ? '👤' : '🤖';
+
+            const msgBody = document.createElement('div');
+            msgBody.className = "flex-1 " + (role === 'user' ? 'text-right' : '');
+
+            const label = document.createElement('p');
+            label.className = "font-semibold text-xs text-slate-400 mb-1";
+            label.innerText = role === 'user' ? 'You' : 'SparkLens Agent';
+
+            const textContainer = document.createElement('div');
+            textContainer.className = "markdown-content text-sm rounded-xl px-4 py-3 border " +
+                (role === 'user' 
+                    ? 'bg-indigo-600/15 border-indigo-500/30 text-indigo-100 inline-block text-left max-w-lg' 
+                    : 'bg-slate-800 border-slate-700 text-slate-200');
+            
+            // Render markdown content using marked.js
+            textContainer.innerHTML = marked.parse(content);
+
+            msgBody.appendChild(label);
+            msgBody.appendChild(textContainer);
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(msgBody);
+            container.appendChild(wrapper);
+            
+            // Auto scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendToolCall(toolName, args) {
+            const container = document.getElementById('chat-messages');
+            const wrapper = document.createElement('div');
+            wrapper.className = "flex gap-4 max-w-3xl items-start my-2 animate-fade-in";
+            
+            const avatar = document.createElement('div');
+            avatar.className = "w-8 h-8 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 font-bold text-xs flex-shrink-0";
+            avatar.innerText = "🔧";
+            
+            const msgBody = document.createElement('div');
+            msgBody.className = "flex-1";
+            
+            const pill = document.createElement('div');
+            pill.className = "inline-flex items-center gap-2 bg-indigo-950/40 border border-indigo-900/50 rounded-xl px-4 py-2.5 text-xs text-indigo-300 font-mono shadow-sm";
+            
+            const spinner = document.createElement('span');
+            spinner.className = "w-2 h-2 rounded-full bg-indigo-400 animate-ping inline-block flex-shrink-0";
+            
+            const statusText = document.createElement('span');
+            // Clean up arguments display
+            const argsStr = args && Object.keys(args).length > 0 ? JSON.stringify(args) : "";
+            statusText.innerHTML = `Calling <strong>${toolName}</strong> ${argsStr}`;
+            
+            pill.appendChild(spinner);
+            pill.appendChild(statusText);
+            msgBody.appendChild(pill);
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(msgBody);
+            
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
+            
+            return pill;
+        }
+
+        function finishToolCall(pillElement, toolName) {
+            pillElement.className = "inline-flex items-center gap-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl px-4 py-2.5 text-xs text-emerald-400 font-mono shadow-sm";
+            pillElement.innerHTML = `<span>✅</span> <span>Completed call to <strong>${toolName}</strong></span>`;
+        }
+
+        function createAssistantBubble() {
+            const container = document.getElementById('chat-messages');
+            const wrapper = document.createElement('div');
+            wrapper.className = "flex gap-4 max-w-3xl";
+            
+            const avatar = document.createElement('div');
+            avatar.className = "w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0 text-sm shadow-md shadow-indigo-600/10";
+            avatar.innerText = "🤖";
+            
+            const msgBody = document.createElement('div');
+            msgBody.className = "flex-1";
+            
+            const label = document.createElement('p');
+            label.className = "font-semibold text-xs text-slate-400 mb-1";
+            label.innerText = "SparkLens Agent";
+            
+            const textContainer = document.createElement('div');
+            textContainer.className = "markdown-content text-sm rounded-xl px-4 py-3 border bg-slate-800 border-slate-700 text-slate-200 shadow-sm";
+            
+            msgBody.appendChild(label);
+            msgBody.appendChild(textContainer);
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(msgBody);
+            
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
+            
+            return { wrapper, container: textContainer };
+        }
+
+        async function handleSubmit(event) {
+            if (event) event.preventDefault();
+            const inputEl = document.getElementById('chat-input');
+            const prompt = inputEl.value.trim();
+            if (!prompt) return;
+
+            inputEl.value = '';
+            
+            // Add user message to UI
+            appendMessage('user', prompt);
+
+            // Show loader
+            const loader = document.getElementById('chat-loader');
+            loader.classList.remove('hidden');
+            
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+
+            let currentAssistantTextContainer = null;
+            let currentAssistantText = "";
+            let activeToolBubble = null;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: prompt,
+                        thread_id: currentThreadId
+                    })
+                });
+
+                if (!res.ok) {
+                    const errorMsg = await res.text();
+                    throw new Error(errorMsg);
+                }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop(); // save remaining fragment
+                    
+                    for (const line of lines) {
+                        const cleaned = line.trim();
+                        if (cleaned.startsWith("data: ")) {
+                            const dataStr = cleaned.slice(6).trim();
+                            if (!dataStr) continue;
+                            
+                            try {
+                                const data = JSON.parse(dataStr);
+                                
+                                if (data.type === 'setup') {
+                                    currentThreadId = data.thread_id;
+                                    document.getElementById('session-id').innerText = currentThreadId;
+                                }
+                                
+                                else if (data.type === 'tool_start') {
+                                    loader.classList.add('hidden');
+                                    // Reset assistant text block so a new one is created after tool execution finishes
+                                    currentAssistantTextContainer = null;
+                                    currentAssistantText = "";
+                                    activeToolBubble = appendToolCall(data.name, data.arguments);
+                                }
+                                
+                                else if (data.type === 'tool_end') {
+                                    if (activeToolBubble) {
+                                        finishToolCall(activeToolBubble, data.name);
+                                        activeToolBubble = null;
+                                    }
+                                }
+                                
+                                else if (data.type === 'content') {
+                                    loader.classList.add('hidden');
+                                    
+                                    if (!currentAssistantTextContainer) {
+                                        const bubble = createAssistantBubble();
+                                        currentAssistantTextContainer = bubble.container;
+                                        currentAssistantText = "";
+                                    }
+                                    
+                                    currentAssistantText += data.delta;
+                                    currentAssistantTextContainer.innerHTML = marked.parse(currentAssistantText);
+                                    container.scrollTop = container.scrollHeight;
+                                }
+                                
+                                else if (data.type === 'error') {
+                                    loader.classList.add('hidden');
+                                    appendMessage('assistant', `⚠️ **Error during agent invocation**: ${data.message}`);
+                                }
+                            } catch(jsonErr) {
+                                console.error("Error parsing streaming JSON event chunk", jsonErr, line);
+                            }
+                        }
+                    }
+                }
+                
+                // Hide loader in case it was left open
+                loader.classList.add('hidden');
+                
+            } catch (err) {
+                loader.classList.add('hidden');
+                appendMessage('assistant', `⚠️ **Error connecting to agent**: ${err.message || err}`);
+            }
+        }
+
+        function sendShortcut(text) {
+            const inputEl = document.getElementById('chat-input');
+            inputEl.value = text;
+            inputEl.focus();
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            newThread();
+        });
+    </script>
+</body>
+</html>

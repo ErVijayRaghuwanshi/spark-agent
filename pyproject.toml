@@ -1,0 +1,30 @@
+[project]
+name = "spark-agent"
+version = "0.1.0"
+description = "A FastAPI and LangChain powered AI agent for Apache Spark diagnostics via SparkLens MCP server"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Vijay Raghuwanshi", email = "ervijayraghuwanshi@gmail.com" }
+]
+license = { text = "Apache-2.0" }
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "pydantic>=2.0",
+    "langchain[google-genai]>=1.2.0",
+    "langchain-google-genai>=4.3.2",
+    "langchain-core>=1.2.12",
+    "langgraph>=1.0.8",
+    "deepagents>=0.7.5",
+    "mcp>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.24.0",
+]
+
+[project.scripts]
+spark-agent = "spark_agent.main:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
