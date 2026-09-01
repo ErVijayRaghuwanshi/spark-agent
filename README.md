@@ -6,6 +6,15 @@ The agent connects dynamically to the **SparkLens MCP Server** using the Model C
 
 ---
 
+## 📚 Documentation & Design
+
+- 🏛️ **[System Architecture](docs/architecture.md):** End-to-end architecture diagrams, dynamic schema compilation pipeline, and sequence diagrams.
+- 📐 **[High-Level Design (HLD)](docs/hld.md):** Subsystem decomposition, streaming protocol, and non-functional requirements.
+- 🔬 **[Low-Level Design (LLD)](docs/lld.md):** Detailed module structure, Pydantic type compiler algorithm, ContextVar lifecycle, and error handling.
+- 🗺️ **[Project Roadmap](docs/roadmap.md):** Milestones, live cluster integration plans, and future feature tracks.
+
+---
+
 ## 📁 Project Structure
 
 ```text
@@ -15,7 +24,13 @@ spark-agent/
 ├── .env.example                # Example environment variables template
 ├── .env                        # Local environment configuration
 ├── .gitignore                  # Git ignore rules
+├── LICENSE                     # Apache 2.0 License
 ├── README.md                   # Documentation
+├── docs/                       # Architectural and design specifications
+│   ├── architecture.md
+│   ├── hld.md
+│   ├── lld.md
+│   └── roadmap.md
 └── src/
     └── spark_agent/
         ├── __init__.py
@@ -79,4 +94,4 @@ Open your browser and navigate to:
 
 ## 📜 License
 
-Apache License 2.0
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
